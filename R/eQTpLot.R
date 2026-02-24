@@ -837,7 +837,7 @@ eQTpLot <- function(GWAS.df, eQTL.df, Genes.df, LD.df = TRUE, gene, trait,
                            "\n(Significance thresholds: GWAS, ", sigpvalue_GWAS, "; eQTL, ",
                            sigpvalue_eQTL, ")", sep = "")) +
     ggplot2::scale_shape_manual("GWAS Direction\nof Effect", values=c("Negative" = 25, "Positive" = 24), na.value = 22) +
-    ggplot2::guides(alpha = FALSE,
+    ggplot2::guides(alpha = "none",
                     size = guide_legend("eQTL Normalized Effect Size",
                                         override.aes = list(shape = 24, color = "black", fill ="grey"),
                                         title.position = "top", order = 2),
@@ -846,8 +846,8 @@ eQTpLot <- function(GWAS.df, eQTL.df, Genes.df, LD.df = TRUE, gene, trait,
                                          order = 1,
                                          override.aes = list(size= 3,
                                                              fill = "grey"))) +
-    ggplot2::theme(legend.direction = "horizontal", legend.key = element_rect(fill = NA, colour = NA, size = 0.25)) +
-    ggplot2::geom_hline(yintercept=-log10(sigpvalue_GWAS), linetype="solid", color = "red", size=0.5) +
+    ggplot2::theme(legend.direction = "horizontal", legend.key = element_rect(fill = NA, colour = NA, linewidth = 0.25)) +
+    ggplot2::geom_hline(yintercept=-log10(sigpvalue_GWAS), linetype="solid", color = "red", linewidth=0.5) +
     ggplot2::theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) +
     ggplot2::theme(plot.margin = unit(c(0,1,-0.8,0), "cm"))
   
@@ -901,7 +901,7 @@ eQTpLot <- function(GWAS.df, eQTL.df, Genes.df, LD.df = TRUE, gene, trait,
   
   ### Add size scale
   p1 <- p1 + ggplot2::scale_size_continuous(limits = NESeQTLRange)
-  if(CollapseMethod == "meta"){p1 <- p1 + ggplot2::guides(size = FALSE)}
+  if(CollapseMethod == "meta"){p1 <- p1 + ggplot2::guides(size = "none")}
   
   ### Add lead SNP labels, if LD.df is supplied
   if(isTRUE(LD.df) == FALSE & Congruentdata == TRUE){
@@ -925,39 +925,78 @@ eQTpLot <- function(GWAS.df, eQTL.df, Genes.df, LD.df = TRUE, gene, trait,
   print("Generating gene tracks...")
   
   ### Generate Gene Track Plot
-  if(gbuild == "hg19"){hostname <- "https://grch37.ensembl.org"}
-  if(gbuild == "hg38"){hostname <- "https://apr2020.archive.ensembl.org"}
-  
-  bm <- biomaRt::useMart(host = hostname,
-                         biomart = "ENSEMBL_MART_ENSEMBL",
-                         dataset = "hsapiens_gene_ensembl")
-  
-  biomTrack <- Gviz::BiomartGeneRegionTrack(genome = gbuild,
-                                            chromosome = median(Combined.eQTL.GWAS.Data$CHR, na.rm = TRUE),
-                                            start = minpos,
-                                            end = maxpos,
-                                            filter = list("with_refseq_mrna"=TRUE),
-                                            name = "ENSEMBL",
-                                            background.panel="gray95",
-                                            biomart = bm,
-                                            margin = c(-3,-3))
-  
-  gtrack <- Gviz::GenomeAxisTrack(fontcolor="#000000", fontsize=14, margin = c(-3,-3))
-  
-  genetracks <- patchwork::wrap_elements(panel = (grid::grid.grabExpr(Gviz::plotTracks(list(biomTrack, gtrack),
-                                                                                       collapseTranscripts = "meta",
-                                                                                       transcriptAnnotation = "symbol",
-                                                                                       chromosome = median(Combined.eQTL.GWAS.Data$CHR, na.rm = TRUE),
-                                                                                       from = min(Combined.eQTL.GWAS.Data$BP, na.rm = TRUE),
-                                                                                       to= max(Combined.eQTL.GWAS.Data$BP, na.rm = TRUE),
-                                                                                       showTitle = FALSE,
-                                                                                       labelPos = "below",
-                                                                                       distFromAxis = 10,
-                                                                                       innermargin = 0,
-                                                                                       maxHeight = (genometrackheight*10),
-                                                                                       minHeight = (genometrackheight*10),
-                                                                                       sizes=c(genometrackheight,1),
-                                                                                       margin = c(-3,-3)))))
+  if (gbuild %in% c("hg19","hg38")) {
+    if(gbuild == "hg19"){
+      bm <- biomaRt::useEnsembl(biomart = "ensembl",
+                                dataset = "hsapiens_gene_ensembl",
+                                GRCh = 37)
+    }
+    if(gbuild == "hg38"){
+      bm <- biomaRt::useEnsembl(biomart = "ensembl",
+                                dataset = "hsapiens_gene_ensembl",
+                                mirror = "asia")
+    }
+    
+    biomTrack <- Gviz::BiomartGeneRegionTrack(genome = gbuild,
+                                              chromosome = median(Combined.eQTL.GWAS.Data$CHR, na.rm = TRUE),
+                                              start = minpos,
+                                              end = maxpos,
+                                              filter = list("with_refseq_mrna"=TRUE),
+                                              name = "ENSEMBL",
+                                              background.panel="gray95",
+                                              biomart = bm,
+                                              margin = c(-3,-3))
+    
+    gtrack <- Gviz::GenomeAxisTrack(fontcolor="#000000", fontsize=14, margin = c(-3,-3))
+    
+    genetracks <- patchwork::wrap_elements(panel = (grid::grid.grabExpr(Gviz::plotTracks(list(biomTrack, gtrack),
+                                                                                         collapseTranscripts = "meta",
+                                                                                         transcriptAnnotation = "symbol",
+                                                                                         chromosome = median(Combined.eQTL.GWAS.Data$CHR, na.rm = TRUE),
+                                                                                         from = min(Combined.eQTL.GWAS.Data$BP, na.rm = TRUE),
+                                                                                         to= max(Combined.eQTL.GWAS.Data$BP, na.rm = TRUE),
+                                                                                         showTitle = FALSE,
+                                                                                         labelPos = "below",
+                                                                                         distFromAxis = 10,
+                                                                                         innermargin = 0,
+                                                                                         maxHeight = (genometrackheight*10),
+                                                                                         minHeight = (genometrackheight*10),
+                                                                                         sizes=c(genometrackheight,1),
+                                                                                         margin = c(-3,-3)))))
+  } else if (gbuild == "B73") {
+    bm <- biomaRt::useMart(host = "https://plants.ensembl.org",
+                           biomart = "plants_mart",
+                           dataset = "zmays_eg_gene")
+    
+    biomTrack <- Gviz::BiomartGeneRegionTrack(genome = gbuild,
+                                              chromosome = median(Combined.eQTL.GWAS.Data$CHR, na.rm = TRUE),
+                                              start = minpos,
+                                              end = maxpos,
+                                              name = "ENSEMBL_PLANTS",
+                                              background.panel="gray95",
+                                              biomart = bm,
+                                              margin = c(-3,-3))
+    
+    gtrack <- Gviz::GenomeAxisTrack(fontcolor="#000000", fontsize=14, margin = c(-3,-3))
+    
+    genetracks <- patchwork::wrap_elements(panel = (grid::grid.grabExpr(Gviz::plotTracks(list(biomTrack, gtrack),
+                                                                                         collapseTranscripts = "meta",
+                                                                                         transcriptAnnotation = "symbol",
+                                                                                         chromosome = median(Combined.eQTL.GWAS.Data$CHR, na.rm = TRUE),
+                                                                                         from = min(Combined.eQTL.GWAS.Data$BP, na.rm = TRUE),
+                                                                                         to= max(Combined.eQTL.GWAS.Data$BP, na.rm = TRUE),
+                                                                                         showTitle = FALSE,
+                                                                                         labelPos = "below",
+                                                                                         distFromAxis = 10,
+                                                                                         innermargin = 0,
+                                                                                         maxHeight = (genometrackheight*10),
+                                                                                         minHeight = (genometrackheight*10),
+                                                                                         sizes=c(genometrackheight,1),
+                                                                                         margin = c(-3,-3)))))
+  } else {
+    message(sprintf("Skipping gene tracks: unsupported gbuild '%s'. Proceeding without panel B.", gbuild))
+    genetracks <- patchwork::plot_spacer()
+  }
   
   ########################  
   ### Generate LDHeatMap
@@ -1087,7 +1126,7 @@ eQTpLot <- function(GWAS.df, eQTL.df, Genes.df, LD.df = TRUE, gene, trait,
       ggplot2::guides(fill = guide_legend(title = NULL))}
   
   if(Congruentdata == TRUE & Incongruentdata == FALSE & congruence == TRUE){
-    p2 <- p2 + ggplot2::scale_fill_manual(labels = c("Congruent" = "Congruent eQTL", "Non-eQTL" = "Non-eQTL", ), values = c("Congruent" = "#000099", "Non-eQTL" = "#C0C0C0")) +
+    p2 <- p2 + ggplot2::scale_fill_manual(labels = c("Congruent" = "Congruent eQTL", "Non-eQTL" = "Non-eQTL"), values = c("Congruent" = "#000099", "Non-eQTL" = "#C0C0C0")) +
       ggplot2::guides(fill = guide_legend(title = NULL))}
   
   if(Congruentdata == TRUE & Incongruentdata == FALSE & congruence == FALSE){
@@ -1112,7 +1151,7 @@ eQTpLot <- function(GWAS.df, eQTL.df, Genes.df, LD.df = TRUE, gene, trait,
     ggplot2::scale_x_continuous(limits=c(NA,xlimd))+
     ggplot2::theme(legend.position = "right") +
     theme(legend.spacing.y = unit(0.1, "cm")) + 
-    theme(legend.key = element_rect(fill = NA, colour = NA, size = 0.25))
+    theme(legend.key = element_rect(fill = NA, colour = NA, linewidth = 0.25))
   
   ### Add data and annotations to plot 3 if LD info is supplied
   ### For congruent data
