@@ -993,6 +993,36 @@ eQTpLot <- function(GWAS.df, eQTL.df, Genes.df, LD.df = TRUE, gene, trait,
                                                                                          minHeight = (genometrackheight*10),
                                                                                          sizes=c(genometrackheight,1),
                                                                                          margin = c(-3,-3)))))
+  } else if (gbuild == "IRGSP-1.0") {
+    bm <- biomaRt::useMart(host = "https://plants.ensembl.org",
+                           biomart = "plants_mart",
+                           dataset = "osativa_eg_gene")
+    
+    biomTrack <- Gviz::BiomartGeneRegionTrack(genome = gbuild,
+                                              chromosome = median(Combined.eQTL.GWAS.Data$CHR, na.rm = TRUE),
+                                              start = minpos,
+                                              end = maxpos,
+                                              name = "ENSEMBL_PLANTS",
+                                              background.panel="gray95",
+                                              biomart = bm,
+                                              margin = c(-3,-3))
+    
+    gtrack <- Gviz::GenomeAxisTrack(fontcolor="#000000", fontsize=14, margin = c(-3,-3))
+    
+    genetracks <- patchwork::wrap_elements(panel = (grid::grid.grabExpr(Gviz::plotTracks(list(biomTrack, gtrack),
+                                                                                         collapseTranscripts = "meta",
+                                                                                         transcriptAnnotation = "symbol",
+                                                                                         chromosome = median(Combined.eQTL.GWAS.Data$CHR, na.rm = TRUE),
+                                                                                         from = min(Combined.eQTL.GWAS.Data$BP, na.rm = TRUE),
+                                                                                         to= max(Combined.eQTL.GWAS.Data$BP, na.rm = TRUE),
+                                                                                         showTitle = FALSE,
+                                                                                         labelPos = "below",
+                                                                                         distFromAxis = 10,
+                                                                                         innermargin = 0,
+                                                                                         maxHeight = (genometrackheight*10),
+                                                                                         minHeight = (genometrackheight*10),
+                                                                                         sizes=c(genometrackheight,1),
+                                                                                         margin = c(-3,-3)))))
   } else {
     message(sprintf("Skipping gene tracks: unsupported gbuild '%s'. Proceeding without panel B.", gbuild))
     genetracks <- patchwork::plot_spacer()
